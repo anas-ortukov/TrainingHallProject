@@ -26,7 +26,42 @@ public class AdminService {
                 2. All clients""");
         switch (Input.inputInt("Choose : ")) {
             case 1 -> createNewClient();
+            case 2 -> showAllClients();
         }
+    }
+
+    private static void showAllClients() {
+        if (userRepo.getAll().isEmpty() || subRepo.getAll().isEmpty()) {
+            System.out.println("\nNo Users or Subscriptions yet\n");
+            return;
+        }
+        System.out.println("N          EMAIL            STATUS");
+        int i = 1;
+        for (User user : userRepo.getAll()) {
+            System.out.println(i + ". " + user.getEmail() + "   " + checkStatus(user));
+            i++;
+        }
+        buyAdditionalSub();
+    }
+
+    private static void buyAdditionalSub() {
+        System.out.println("""
+                \nYou can choose user's index in order to buy additional subs
+                0 - Back""");
+        int indexOfChoice = Input.inputInt("Choose : ") - 1;
+        if (indexOfChoice == -1) {
+            return;
+        }
+        chooseSubs(userRepo.getAll().get(indexOfChoice));
+    }
+
+    private static String checkStatus(User user) {
+        for (Subscription subscription : subRepo.getAll()) {
+            if (subscription.getStatus().equals(SubStatus.ACTIVE) && subscription.getUserId() == user.getCode()) {
+                return "✓";
+            }
+        }
+        return "✗";
     }
 
     private static void createNewClient() {
