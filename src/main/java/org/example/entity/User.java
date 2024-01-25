@@ -5,10 +5,12 @@ import lombok.Builder;
 import lombok.Data;
 import org.example.entity.enums.Role;
 
+import java.io.Serializable;
+
 @Data
 @AllArgsConstructor
 @Builder
-public class User {
+public class User implements Serializable {
 
     private String email;
     private String password;

@@ -1,5 +1,6 @@
 package org.example;
 
+import org.example.service.AdminService;
 import org.example.service.AuthService;
 
 public class Main {
@@ -9,7 +10,7 @@ public class Main {
             if (AuthService.CURRENT_USER == null){
                 AuthService.logIn();
             }
-
+            AdminService.start();
         }
 
     }

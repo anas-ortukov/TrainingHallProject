@@ -84,9 +84,4 @@ public class UserRepo {
         System.out.println("Account has been changed successfully");
     }
 
-    public void delete(User user) {
-        users.remove(user);
-        uploadData();
-    }
-
 }
