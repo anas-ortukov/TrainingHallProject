@@ -1,7 +1,6 @@
 package org.example.entity;
 
 import org.example.service.AuthService;
-
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,7 +25,7 @@ public class UserRepo {
     private static List<User> loadData() {
         try (
                 InputStream is = new FileInputStream(PATH);
-                ObjectInputStream inputStream = new ObjectInputStream(is);
+                ObjectInputStream inputStream = new ObjectInputStream(is)
         ) {
             return (List<User>) inputStream.readObject();
         } catch (IOException | ClassNotFoundException e) {
@@ -37,7 +36,7 @@ public class UserRepo {
     private void uploadData() {
         try (
                 OutputStream is = new FileOutputStream(PATH);
-                ObjectOutputStream outputStream = new ObjectOutputStream(is);
+                ObjectOutputStream outputStream = new ObjectOutputStream(is)
         ) {
             outputStream.writeObject(users);
         } catch (IOException e) {

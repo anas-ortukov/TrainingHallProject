@@ -3,6 +3,7 @@ package org.example.service;
 import lombok.SneakyThrows;
 import org.example.db.DB_ADMIN;
 import org.example.entity.User;
+import org.example.entity.UserRepo;
 import org.example.utils.Input;
 import javax.mail.*;
 import javax.mail.internet.InternetAddress;
@@ -18,31 +19,40 @@ import java.util.regex.Pattern;
 public class AuthService {
 
     public static User CURRENT_USER;
+    public static UserRepo userRepo = UserRepo.getInstance();
 
     public static void logIn() {
         String email = checkEmail();
         twoStepAuthentication(email);
         String password = checkPassword();
-        checkAdmin(email, password);
+        checkRole(email, password);
     }
 
-    private static void checkAdmin(String email, String password) {
+    private static void checkRole(String email, String password) {
         for (User admin : DB_ADMIN.ADMINS) {
-            if(email.equals(admin.getEmail()) && password.equals(admin.getPassword())) {
+            if (email.equals(admin.getEmail()) && password.equals(admin.getPassword())) {
                 CURRENT_USER = admin;
+                AdminService.start();
                 return;
             }
         }
-        System.out.println("\nThere is no such an Admin. Either email or password is wrong. Please try again!\n");
+        for (User user : userRepo.getAll()) {
+            if (user.getEmail().equals(email) && user.getPassword().equals(password)) {
+                CURRENT_USER = user;
+                ClientService.start();
+                return;
+            }
+        }
+        System.out.println("\nThere is no such an User. Either email or password is wrong. Please try again!\n");
         logIn();
     }
 
     @SneakyThrows
     public static void twoStepAuthentication(String email) {
         System.out.println("\nConfirmation Code was sent to your email\n");
-        try(
-                FileInputStream fileInputStream = new FileInputStream("src/main/resources/mail.properties");
-                ) {
+        try (
+                FileInputStream fileInputStream = new FileInputStream("src/main/resources/mail.properties")
+        ) {
             String username = "azizortukov818@gmail.com";
             String password = "vwkvnmsussdjiynm";
             Properties properties = new Properties();
@@ -62,27 +72,26 @@ public class AuthService {
 
     @SneakyThrows
     private static void sendMessage(Message message) {
-        ExecutorService service = Executors.newSingleThreadExecutor();
-        Future<Integer> code = service.submit(() -> {
-            try {
+        try (
+                ExecutorService service = Executors.newSingleThreadExecutor()
+        ) {
+            Future<Integer> code = service.submit(() -> {
                 Random random = new Random();
                 int generatedCode = random.nextInt(1010, 1900);
                 message.setText("Do not share this code with anyone : " + generatedCode);
                 Transport.send(message);
                 return generatedCode;
-            } catch (MessagingException e) {
-                throw new RuntimeException(e);
-            } finally {
-                service.shutdown();
+
+            });
+
+            int codeOfUser = Input.inputInt("Enter the code : ");
+            if (!(codeOfUser == code.get())) {
+                System.out.println("\nThe entered code is wrong. The code sent again\n");
+                sendMessage(message);
             }
-        });
-        int codeOfUser = Input.inputInt("Enter the code : ");
-        if (!(codeOfUser == code.get())) {
-            System.out.println("\nThe entered code is wrong. The code sent again\n");
-            sendMessage(message);
-            return;
         }
     }
+
     public static String checkPassword() {
         Pattern passwordPattern = Pattern.compile("^(?=.*[0-9])(?=.*\\W)(?=.*[a-z])(?=.*[A-Z]).{8,}$");
         String password = Input.inputStr("Enter password : ");

@@ -1,44 +1,39 @@
 package org.example.service;
-
-import org.example.entity.SubRepo;
-import org.example.entity.Subscription;
 import org.example.entity.User;
 import org.example.entity.UserRepo;
 import org.example.entity.enums.Role;
-import org.example.entity.enums.SubStatus;
-import org.example.entity.enums.SubType;
 import org.example.utils.Input;
-import java.time.LocalDateTime;
+import javax.mail.*;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.Properties;
 import java.util.Random;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
 public class AdminService {
-    private static final SubRepo subRepo = SubRepo.getInstance();
-
     public static final UserRepo userRepo = UserRepo.getInstance();
+
     public static void start() {
-        refreshSubs();
         System.out.println("""
                 \n1. Creating new client
-                2. All clients""");
+                2. All clients
+                3. Log out""");
         switch (Input.inputInt("Choose : ")) {
             case 1 -> createNewClient();
             case 2 -> showAllClients();
+            case 3 -> AuthService.CURRENT_USER = null;
         }
     }
 
     private static void showAllClients() {
-        if (userRepo.getAll().isEmpty() || subRepo.getAll().isEmpty()) {
-            System.out.println("\nNo Users or Subscriptions yet\n");
+        if (userRepo.getAll().isEmpty()) {
+            System.out.println("\nNo Users yet\n");
             return;
         }
         System.out.println("N          EMAIL            STATUS");
         int i = 1;
         for (User user : userRepo.getAll()) {
-            System.out.println(i + ". " + user.getEmail() + "   " + checkStatus(user));
+            System.out.println(i + ". " + user.getEmail() + "   " + AllServices.checkStatus(user));
             i++;
         }
         buyAdditionalSub();
@@ -52,55 +47,17 @@ public class AdminService {
         if (indexOfChoice == -1) {
             return;
         }
-        chooseSubs(userRepo.getAll().get(indexOfChoice));
-    }
-
-    private static String checkStatus(User user) {
-        for (Subscription subscription : subRepo.getAll()) {
-            if (subscription.getStatus().equals(SubStatus.ACTIVE) && subscription.getUserId() == user.getCode()) {
-                return "✓";
-            }
-        }
-        return "✗";
+        AllServices.chooseSubs(userRepo.getAll().get(indexOfChoice));
     }
 
     private static void createNewClient() {
         User user = new User(AuthService.checkEmail(), AuthService.checkPassword(),
                 Role.USER, false, generateId());
         userRepo.save(user);
-        chooseSubs(user);
+        sendPasswordToClient(user);
+        AllServices.chooseSubs(user);
     }
 
-    private static void chooseSubs(User user) {
-        System.out.println("""
-                1. DAILY
-                2. MONTHLY
-                3. QUARTER-YEAR""");
-        switch (Input.inputInt("Choose : ")) {
-            case 1 -> {
-                Subscription sub = new Subscription(
-                    user.getCode(), LocalDateTime.now(), LocalDateTime.now().plusDays(1),
-                        SubType.DAILY, SubStatus.ACTIVE
-                );
-                subRepo.save(sub);
-            }
-            case 2 -> {
-                Subscription sub = new Subscription(
-                        user.getCode(), LocalDateTime.now(), LocalDateTime.now().plusMonths(1),
-                        SubType.DAILY, SubStatus.ACTIVE
-                );
-                subRepo.save(sub);
-            }
-            case 3 -> {
-                Subscription sub = new Subscription(
-                        user.getCode(), LocalDateTime.now(), LocalDateTime.now().plusMonths(3),
-                        SubType.DAILY, SubStatus.ACTIVE
-                );
-                subRepo.save(sub);
-            }
-        }
-        System.out.println("\nSubscription has been purchased and saved!\n");
-    }
 
     private static int generateId() {
         Random random = new Random();
@@ -116,14 +73,29 @@ public class AdminService {
         return id;
     }
 
-    private static void refreshSubs() {
-        ScheduledExecutorService checkSubs = Executors.newScheduledThreadPool(1);
-        checkSubs.scheduleAtFixedRate(()-> {
-            for (Subscription subscription : subRepo.getAll()) {
-                if (subscription.getEndDate().isBefore(LocalDateTime.now())) {
-                    subRepo.update(subscription);
+    private static void sendPasswordToClient(User user) {
+        try {
+            FileInputStream fileInputStream = new FileInputStream("src/main/resources/mail.properties");
+            String username = "azizortukov818@gmail.com";
+            String password = "jfwiblejdjarrawq";
+            Properties properties = new Properties();
+            properties.load(fileInputStream);
+            Session session = Session.getInstance(properties, new Authenticator() {
+                @Override
+                protected PasswordAuthentication getPasswordAuthentication() {
+                    return new PasswordAuthentication(username, password);
                 }
-            }
-        }, 0, 5, TimeUnit.SECONDS);
+            });
+            Message message = new MimeMessage(session);
+            message.setFrom(new InternetAddress(username));
+            message.setRecipient(Message.RecipientType.TO, new InternetAddress(user.getEmail()));
+            message.setSubject("The Training Hall Administration");
+            message.setText("Your password to login Training Hall's program is " + user.getPassword() +
+                    "\nYou can change it later!");
+            Transport.send(message);
+        } catch (MessagingException | IOException e) {
+            throw new RuntimeException(e);
+        }
+
     }
 }

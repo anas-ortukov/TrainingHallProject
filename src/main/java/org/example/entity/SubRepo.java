@@ -10,7 +10,8 @@ public class SubRepo {
 
     private static final String PATH = "src/main/java/org/example/db/subs_db.txt";
     private static SubRepo singleton;
-    private List<Subscription> subs;
+    private final List<Subscription> subs;
+
     private SubRepo(List<Subscription> subs) {
         this.subs = subs;
     }
@@ -26,7 +27,7 @@ public class SubRepo {
     private static List<Subscription> loadData() {
         try (
                 InputStream is = new FileInputStream(PATH);
-                ObjectInputStream inputStream = new ObjectInputStream(is);
+                ObjectInputStream inputStream = new ObjectInputStream(is)
         ) {
             return (List<Subscription>) inputStream.readObject();
         } catch (IOException | ClassNotFoundException e) {
@@ -37,7 +38,7 @@ public class SubRepo {
     private void uploadData() {
         try (
                 OutputStream is = new FileOutputStream(PATH);
-                ObjectOutputStream outputStream = new ObjectOutputStream(is);
+                ObjectOutputStream outputStream = new ObjectOutputStream(is)
         ) {
             outputStream.writeObject(subs);
         } catch (IOException e) {
@@ -54,8 +55,7 @@ public class SubRepo {
         return subs;
     }
 
-
-    public synchronized void update(Subscription sub) {
+    public void update(Subscription sub) {
         sub.setStatus(SubStatus.IN_ACTIVE);
         uploadData();
     }
