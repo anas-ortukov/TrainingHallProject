@@ -1,7 +1,7 @@
 package org.example.service;
 
 import lombok.SneakyThrows;
-import org.example.db.DB_ADMIN;
+import org.example.entity.AdminDbService;
 import org.example.entity.User;
 import org.example.entity.UserRepo;
 import org.example.utils.Input;
@@ -29,7 +29,7 @@ public class AuthService {
     }
 
     private static void checkRole(String email, String password) {
-        for (User admin : DB_ADMIN.ADMINS) {
+        for (User admin : AdminDbService.getInstance().get()) {
             if (email.equals(admin.getEmail()) && password.equals(admin.getPassword())) {
                 CURRENT_USER = admin;
                 AdminService.start();
